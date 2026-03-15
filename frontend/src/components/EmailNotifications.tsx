@@ -96,19 +96,9 @@ export default function EmailNotifications({ wallet, onSuccess, onError }: Email
         <button
           type="submit"
           disabled={loading}
+          className={`btn btn-sage ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
           style={{
             width: '100%',
-            padding: '0.75rem 1.25rem',
-            fontFamily: "'Syne', sans-serif",
-            fontWeight: '700',
-            fontSize: '0.95rem',
-            background: loading ? '#8C7B6B' : '#4A7C59',
-            color: '#ffffff',
-            border: '1.5px solid #4A7C59',
-            borderRadius: '4px',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.15s ease',
-            opacity: loading ? 0.6 : 1,
           }}
         >
           {loading ? 'Registering...' : registered ? '✓ Registered!' : 'Register'}

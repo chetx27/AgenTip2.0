@@ -104,19 +104,9 @@ export default function TipForm({ creatorWallet, onSuccess, onError }: TipFormPr
       <button
         type="submit"
         disabled={loading}
+        className={`btn btn-rust ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
         style={{
           width: '100%',
-          padding: '0.75rem 1.25rem',
-          fontFamily: "'Syne', sans-serif",
-          fontWeight: '700',
-          fontSize: '0.95rem',
-          background: loading ? '#8C7B6B' : '#c54b13',
-          color: '#ffffff',
-          border: '1.5px solid #c54b13',
-          borderRadius: '4px',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          transition: 'all 0.15s ease',
-          opacity: loading ? 0.6 : 1,
         }}
       >
         {loading ? 'Processing...' : submitted ? '✓ Tip Sent!' : 'Send Tip'}
