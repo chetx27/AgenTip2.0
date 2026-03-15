@@ -14,6 +14,10 @@ export default function TransactionsFeed({ wallet, limit = 10, filter = 'all' }:
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const formatAmount = (amount: number, type: 'human' | 'agent') => {
+    if (type === 'agent') return amount.toFixed(3);
+    return amount.toFixed(2);
+  };
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -114,7 +118,7 @@ export default function TransactionsFeed({ wallet, limit = 10, filter = 'all' }:
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '1rem', color: '#D4A017', fontWeight: '600', marginBottom: '0.25rem' }}>
-                  +${parseFloat(tx.amount as any).toFixed(2)}
+                  +${formatAmount(parseFloat(tx.amount as any), tx.type)}
                 </div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', color: '#81C784' }}>
                   {tx.status}

@@ -13,6 +13,10 @@ export default function DashboardContent({ wallet, onLoadingChange }: DashboardC
   const [stats, setStats] = useState<CreatorStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const formatAmount = (amount: number, type?: 'human' | 'agent') => {
+    if (type === 'agent') return amount.toFixed(3);
+    return amount.toFixed(2);
+  };
 
   useEffect(() => {
     if (!wallet) return;
@@ -124,7 +128,7 @@ export default function DashboardContent({ wallet, onLoadingChange }: DashboardC
               🤖 Agent Payments
             </div>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '1.5rem', color: '#FFB74D', marginBottom: '0.25rem' }}>
-              ${stats.agentPayments.total.toFixed(2)}
+              ${formatAmount(stats.agentPayments.total, 'agent')}
             </div>
             <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: '#8C7B6B' }}>
               {stats.agentPayments.count} payments
@@ -196,7 +200,7 @@ export default function DashboardContent({ wallet, onLoadingChange }: DashboardC
                   </div>
                 </div>
                 <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '1rem', color: '#D4A017', fontWeight: '600' }}>
-                  +${parseFloat(tx.amount).toFixed(2)}
+                  +${formatAmount(parseFloat(tx.amount), tx.type)}
                 </div>
               </div>
             ))}
