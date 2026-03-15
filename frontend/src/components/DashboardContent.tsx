@@ -64,7 +64,7 @@ export default function DashboardContent({ wallet, onLoadingChange }: DashboardC
 
   if (error) {
     return (
-      <div style={{ padding: '2rem', color: '#FFB74D' }}>
+      <div style={{ padding: '2rem', color: '#FFB74D', background: '#1A1814', border: '1.5px solid #FFB74D', borderRadius: '4px' }}>
         <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.9rem' }}>⚠ {error}</p>
         <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', color: '#F5F0E8' }}>
           Make sure you have earned some payments to see your stats.
@@ -73,7 +73,16 @@ export default function DashboardContent({ wallet, onLoadingChange }: DashboardC
     );
   }
 
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <div style={{ padding: '3rem 2rem', textAlign: 'center', background: '#1A1814', border: '1.5px solid #F5F0E8', borderRadius: '4px' }}>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.25rem', color: '#F5F0E8', marginBottom: '1rem' }}>No Stats Found</div>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem', color: '#8C7B6B' }}>
+          Your wallet ({formatWalletAddress(wallet)}) doesn't have any earnings yet.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>

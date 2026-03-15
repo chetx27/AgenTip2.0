@@ -653,17 +653,17 @@ body {
 
 /* Dashboard Wrapper */
 .dash-content-wrapper {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
-  padding: 2rem;
+  padding: 3rem;
   background: var(--ink);
   min-height: 100vh;
 }
 
 @media (max-width: 1024px) {
   .dash-content-wrapper {
-    grid-template-columns: 1fr;
+    padding: 2rem;
   }
 
   .stat-grid {
