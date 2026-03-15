@@ -5,6 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("postgresql://neondb_owner:npg_dmh1yOjTk9ea@ep-small-hall-anw9ieja-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 }
 
 enum PaymentType {
