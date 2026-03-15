@@ -1,13 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { subscribeToGlobalTips } from '@/lib/socket';
-import WalletConnect from '@/components/WalletConnect';
-import DashboardContent from '@/components/DashboardContent';
-import TipForm from '@/components/TipForm';
-import TransactionsFeed from '@/components/TransactionsFeed';
-import EmailNotifications from '@/components/EmailNotifications';
-import IntelligenceFeed from '@/components/IntelligenceFeed';
 
 // Prevent static generation for this dynamic page
 export const dynamic = 'force-dynamic';
@@ -291,7 +286,6 @@ export default function HomePage() {
   const [landingAgentCalls, setLandingAgentCalls] = useState(184220);
   const [feedItems, setFeedItems] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
-
   const humanNames = ["Elena R.", "Alex K.", "Sarah W.", "Mike T.", "David O.", "Jenny L."];
   const agentNames = ["GPT-4o Crawler", "Claude Research", "Perplexity Bot", "LangChain Node", "AutoGPT-X"];
 
@@ -342,7 +336,7 @@ export default function HomePage() {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <div className="tab-group">
             <button className={`tab ${activeView === 'view-landing' ? 'active' : ''}`} onClick={() => switchView('view-landing')}>Product</button>
-            <button className={`tab ${activeView === 'view-dashboard' ? 'active' : ''}`} onClick={() => switchView('view-dashboard')}>Dashboard</button>
+            <Link href="/dashboard" className="tab">Dashboard</Link>
             <button className={`tab ${activeView === 'view-demo' ? 'active' : ''}`} onClick={() => switchView('view-demo')}>Live Demo</button>
           </div>
         </div>
@@ -388,9 +382,9 @@ export default function HomePage() {
 
           {/* CTA Buttons */}
           <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn btn-rust" onClick={() => switchView('view-dashboard')} style={{ padding: '1rem 2rem', fontSize: '1rem' }}>
+            <Link href="/dashboard" className="btn btn-rust" style={{ padding: '1rem 2rem', fontSize: '1rem', textDecoration: 'none' }}>
               See Dashboard →
-            </button>
+            </Link>
             <button className="btn" onClick={() => switchView('view-demo')} style={{ padding: '1rem 2rem', fontSize: '1rem' }}>
               Watch Demo
             </button>
@@ -414,9 +408,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="landing-col-right" style={{ position: 'relative', minHeight: '600px' }}>
+        <div className="landing-col-right" style={{ position: 'relative', minHeight: '600px', padding: '2rem' }}>
           {/* Project-Specific 3D Visualizer - Payment Network */}
-          <div style={{ width: '100%', maxWidth: '800px', height: '500px', border: '1.5px solid var(--ink)', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '2rem' }}>
+          <div style={{ width: '100%', maxWidth: '800px', margin: '0 auto', height: '500px', border: '1.5px solid var(--ink)', borderRadius: '8px', overflow: 'hidden', position: 'relative', marginBottom: '2rem' }}>
             <AgentTipVisualizer />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1rem', background: 'linear-gradient(to top, rgba(248, 243, 234, 0.95), transparent)', textAlign: 'center' }}>
               <p style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.75rem', color: 'var(--dust)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
@@ -426,7 +420,7 @@ export default function HomePage() {
           </div>
 
           {/* Stats Grid Below */}
-          <div className="stat-grid" style={{ maxWidth: '800px', width: '100%', marginTop: '1rem' }}>
+          <div className="stat-grid" style={{ maxWidth: '800px', width: '100%', margin: '1rem auto 0 auto' }}>
             <div className="card stat-card" style={{ animation: 'fadeUp 0.6s ease 0.1s backwards' }}>
               <div className="label-mono"><span className="dot dot-sage"></span> Human tips today</div>
               <div className="stat-value">${landingHumanTotal.toFixed(2)}</div>
@@ -449,10 +443,10 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="live-feed-panel" style={{ maxWidth: '800px', width: '100%', marginTop: '2rem', animation: 'fadeUp 0.6s ease 0.5s backwards' }}>
+          <div className="live-feed-panel" style={{ maxWidth: '800px', width: '100%', margin: '2rem auto 0 auto', animation: 'fadeUp 0.6s ease 0.5s backwards' }}>
             <div className="feed-header">
               <div className="feed-dot"></div>
-              <span className="label-mono" style={{ color: 'var(--cream)' }}>live payment feed</span>
+              <span className="label-mono" style={{ color: 'var(--ink)' }}>live payment feed</span>
             </div>
             <div className="feed-list">
               {feedItems.map((item, idx) => (
@@ -466,53 +460,6 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      <div id="view-dashboard" className={`view ${activeView === 'view-dashboard' ? 'active' : ''}`}>
-        <div className="dash-content-wrapper">
-          <div style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 className="heading-section">Dashboard</h1>
-              <div className="label-mono" style={{ marginTop: '0.5rem' }}>Manage your earnings & integrations</div>
-            </div>
-            <WalletConnect 
-              onWalletConnected={setConnectedWallet}
-              onWalletDisconnected={() => setConnectedWallet(null)}
-            />
-          </div>
-
-          {!connectedWallet ? (
-            <div style={{ background: '#1A1814', border: '1.5px solid #D4A017', borderRadius: '4px', padding: '3rem', textAlign: 'center' }}>
-              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: '1.5rem', fontWeight: '800', color: '#D4A017', marginBottom: '1rem' }}>
-                Connect Your Wallet
-              </div>
-              <p style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1rem', color: '#F5F0E8', lineHeight: '1.6' }}>
-                Connect your Web3 wallet to view your earnings, send tips, and manage your creator intelligence network.
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
-              <div>
-                <DashboardContent wallet={connectedWallet} />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <TipForm creatorWallet={connectedWallet} />
-                <EmailNotifications wallet={connectedWallet} />
-              </div>
-            </div>
-          )}
-
-          {connectedWallet && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-              <div>
-                <TransactionsFeed wallet={connectedWallet} limit={10} filter="all" />
-              </div>
-              <div>
-                <IntelligenceFeed wallet={connectedWallet} />
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -593,9 +540,9 @@ export default function HomePage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', animation: 'fadeUp 1s cubic-bezier(0.4,0,0.2,1) 1.7s both' }}>
-              <button className="btn btn-rust" style={{ padding: '1rem 2rem', fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.01em' }} onClick={() => switchView('view-dashboard')}>
+              <Link href="/dashboard" className="btn btn-rust" style={{ padding: '1rem 2rem', fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.01em', textDecoration: 'none' }}>
                 Start Earning Now
-              </button>
+              </Link>
               <button className="btn" style={{ padding: '1rem 2rem', fontSize: '1.1rem', fontWeight: 700, letterSpacing: '0.01em' }} onClick={() => switchView('view-landing')}>
                 Back to Product
               </button>
