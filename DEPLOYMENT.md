@@ -12,8 +12,8 @@
 
 1. Go to your Vercel project settings → Environment Variables
 2. Add `NEXT_PUBLIC_API_URL` and set it to your Railway backend URL
-   - Example: `https://agenttip-backend.up.railway.app`
-   - Make sure to use the correct Railway domain for your deployed backend
+   - Example: `https://agentip-production.up.railway.app`
+   - This should match your actual Railway deployment URL
 
 ### Build Configuration:
 
