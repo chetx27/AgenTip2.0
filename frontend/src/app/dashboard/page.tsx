@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import WalletConnect from '@/components/WalletConnect';
-import DashboardContent from '@/components/DashboardContent';
+import DashboardContentPanel from '@/components/DashboardContent';
 import TipForm from '@/components/TipForm';
 import TransactionsFeed from '@/components/TransactionsFeed';
 import EmailNotifications from '@/components/EmailNotifications';
 import IntelligenceFeed from '@/components/IntelligenceFeed';
 
-export default function DashboardPage() {
+function DashboardContent() {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const isDemo = searchParams.get('demo') === '1' || searchParams.get('view') === 'demo';
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
               <div>
-                <DashboardContent wallet={connectedWallet} />
+                <DashboardContentPanel wallet={connectedWallet} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 <TipForm creatorWallet={connectedWallet} mode={isDemo ? 'demo' : 'onchain'} />
@@ -78,5 +78,19 @@ export default function DashboardPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      }
+    >
+      <DashboardContent />
+    </Suspense>
   );
 }
