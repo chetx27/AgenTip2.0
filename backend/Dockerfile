@@ -26,5 +26,6 @@ RUN npm run build
 # Expose port
 EXPOSE 3001
 
-# Start the server (pushing db schema first to ensure sync)
-CMD npx prisma db push --accept-data-loss && node dist/index.js
+# Start the server
+# Note: Run database migrations separately using: railway run npx prisma migrate deploy
+CMD node dist/index.js

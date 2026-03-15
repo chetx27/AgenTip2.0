@@ -54,14 +54,16 @@ NODE_ENV=production
 ### Database Setup:
 
 1. Railway provides a PostgreSQL database with a connection string
-2. On first deployment, run migrations:
-   ```bash
-   railway run npm run db:migrate
-   ```
-3. Or use the Railway CLI:
+2. Set the `DATABASE_URL` environment variable in Railway (this is usually auto-populated)
+3. Run migrations on first deployment using the Railway CLI:
    ```bash
    railway run npx prisma migrate deploy
    ```
+   Or if you prefer to use `db push`:
+   ```bash
+   railway run npx prisma db push
+   ```
+4. The backend server will then start normally without running migrations in the container
 
 ## Testing the Setup
 
