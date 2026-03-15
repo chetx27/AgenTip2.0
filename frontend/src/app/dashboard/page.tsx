@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import WalletConnect from '@/components/WalletConnect';
 import DashboardContent from '@/components/DashboardContent';
@@ -11,6 +12,8 @@ import IntelligenceFeed from '@/components/IntelligenceFeed';
 
 export default function DashboardPage() {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get('demo') === '1' || searchParams.get('view') === 'demo';
 
   return (
     <>
@@ -23,7 +26,7 @@ export default function DashboardPage() {
           <div className="tab-group">
             <Link href="/" className="tab">Product</Link>
             <button className="tab active">Dashboard</button>
-            <Link href="/?view=demo" className="tab">Live Demo</Link>
+            <Link href="/dashboard?demo=1" className="tab">Live Demo</Link>
           </div>
         </div>
       </nav>
@@ -56,7 +59,7 @@ export default function DashboardPage() {
                 <DashboardContent wallet={connectedWallet} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <TipForm creatorWallet={connectedWallet} />
+                <TipForm creatorWallet={connectedWallet} mode={isDemo ? 'demo' : 'onchain'} />
                 <EmailNotifications wallet={connectedWallet} />
               </div>
             </div>

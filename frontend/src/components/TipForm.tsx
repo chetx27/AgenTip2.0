@@ -1,24 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { submitTip } from '@/lib/api';
+import { submitDemoTip, submitTip } from '@/lib/api';
 
 interface TipFormProps {
   creatorWallet: string;
   onSuccess?: (amount: number) => void;
   onError?: (error: string) => void;
+  mode?: 'onchain' | 'demo';
 }
 
-export default function TipForm({ creatorWallet, onSuccess, onError }: TipFormProps) {
+export default function TipForm({ creatorWallet, onSuccess, onError, mode = 'onchain' }: TipFormProps) {
   const [amount, setAmount] = useState('');
   const [txHash, setTxHash] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const isDemo = mode === 'demo';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!amount || !txHash) {
+    if (!amount || (!isDemo && !txHash)) {
       onError?.('Please fill in all fields');
       return;
     }
@@ -31,7 +33,11 @@ export default function TipForm({ creatorWallet, onSuccess, onError }: TipFormPr
 
     setLoading(true);
     try {
-      await submitTip(creatorWallet, numAmount, txHash);
+      if (isDemo) {
+        await submitDemoTip(creatorWallet, numAmount);
+      } else {
+        await submitTip(creatorWallet, numAmount, txHash);
+      }
       setSubmitted(true);
       setAmount('');
       setTxHash('');
@@ -74,32 +80,38 @@ export default function TipForm({ creatorWallet, onSuccess, onError }: TipFormPr
         />
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label style={{ display: 'block', fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8C7B6B', marginBottom: '0.5rem' }}>
-          Transaction Hash
-        </label>
-        <input
-          type="text"
-          value={txHash}
-          onChange={(e) => setTxHash(e.target.value)}
-          placeholder="0x..."
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '0.9rem',
-            background: '#11100D',
-            border: '1px solid #8C7B6B',
-            borderRadius: '4px',
-            color: '#F5F0E8',
-            boxSizing: 'border-box',
-          }}
-        />
-        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', color: '#8C7B6B', marginTop: '0.5rem' }}>
-          Paste your transaction hash from the blockchain explorer
+      {isDemo ? (
+        <div style={{ marginBottom: '1.5rem', fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', color: '#8C7B6B' }}>
+          Demo mode enabled. This tip is simulated without on-chain verification.
         </div>
-      </div>
+      ) : (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{ display: 'block', fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#8C7B6B', marginBottom: '0.5rem' }}>
+            Transaction Hash
+          </label>
+          <input
+            type="text"
+            value={txHash}
+            onChange={(e) => setTxHash(e.target.value)}
+            placeholder="0x..."
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '0.9rem',
+              background: '#11100D',
+              border: '1px solid #8C7B6B',
+              borderRadius: '4px',
+              color: '#F5F0E8',
+              boxSizing: 'border-box',
+            }}
+          />
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.65rem', color: '#8C7B6B', marginTop: '0.5rem' }}>
+            Paste your transaction hash from the blockchain explorer
+          </div>
+        </div>
+      )}
 
       <button
         type="submit"
@@ -109,7 +121,7 @@ export default function TipForm({ creatorWallet, onSuccess, onError }: TipFormPr
           width: '100%',
         }}
       >
-        {loading ? 'Processing...' : submitted ? '✓ Tip Sent!' : 'Send Tip'}
+        {loading ? 'Processing...' : submitted ? '✓ Tip Sent!' : isDemo ? 'Send Demo Tip' : 'Send Tip'}
       </button>
 
       {submitted && (

@@ -87,6 +87,20 @@ export async function submitTip(
   return res.json();
 }
 
+// Submit Demo Tip (no on-chain verification)
+export async function submitDemoTip(
+  wallet: string,
+  amount: number
+): Promise<any> {
+  const res = await fetch(`${API_BASE}/tip`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet, amount, demo: true }),
+  });
+  if (!res.ok) throw new Error('Failed to submit demo tip');
+  return res.json();
+}
+
 // Register for Notifications
 export async function registerForNotifications(
   walletAddress: string,
