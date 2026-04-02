@@ -264,8 +264,4 @@ Serve `widget/dist/widget.js` from your backend or a CDN.
 - **Shadow DOM isolation** (widget CSS doesn't leak)
 - **Helmet** security headers
 
----
 
-## 📄 License
-
-MIT
