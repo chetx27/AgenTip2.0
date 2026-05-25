@@ -1,0 +1,29 @@
+# Server
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# Database
+DATABASE_URL=postgresql://neondb_owner:npg_dmh1yOjTk9ea@ep-small-hall-anw9ieja-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+
+# Base Chain (Sepolia testnet)
+BASE_RPC_URL=https://sepolia.base.org
+USDC_CONTRACT=0x036CbD53842c5426634e7929541eC2318f3dCF7e
+
+# x402 Config
+X402_FACILITATOR_URL=https://x402.org/facilitator
+X402_PAYMENT_AMOUNT=0.001
+X402_PAYMENT_ASSET=USDC
+X402_PAYMENT_NETWORK=base-sepolia
+
+# Default creator wallet (for demo)
+DEFAULT_CREATOR_WALLET=0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78
+
+# Email Notifications (Resend)
+RESEND_API_KEY=rre_fjYqi9LP_E7gaNDMZLbtmtHLkqJTwGuPp
+FROM_EMAIL=onboarding@resend.dev
+BACKEND_URL=http://localhost:3001
+
+# ENS DeFi Will Configuration
+ETH_MAINNET_RPC=https://eth.llamarpc.com
+EXECUTOR_AGENT_KEY=agenttip_will_executor_secret_2026

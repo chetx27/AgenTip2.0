@@ -1,0 +1,212 @@
+﻿diff --git a/frontend/src/app/dashboard/page.tsx b/frontend/src/app/dashboard/page.tsx
+index aba2121..12b172c 100644
+--- a/frontend/src/app/dashboard/page.tsx
++++ b/frontend/src/app/dashboard/page.tsx
+@@ -50,6 +50,12 @@ interface IntelligenceData {
+   }>;
+ }
+ 
++declare global {
++  interface Window {
++    ethereum?: any;
++  }
++}
++
+ export default function DashboardPage() {
+   const [wallet, setWallet] = useState('');
+   const [isOnboarded, setIsOnboarded] = useState(false);
+@@ -58,6 +64,7 @@ export default function DashboardPage() {
+   const [loading, setLoading] = useState(false);
+   const [copied, setCopied] = useState(false);
+   const [socket, setSocket] = useState<Socket | null>(null);
++  const [ensName, setEnsName] = useState('');
+ 
+   const [email, setEmail] = useState('');
+   const [summaryTime, setSummaryTime] = useState('20:00');
+@@ -108,7 +115,11 @@ export default function DashboardPage() {
+   const fetchStats = useCallback(async (walletAddr: string) => {
+     setLoading(true);
+     try {
+-      const res = await fetch(`${API_URL}/creator/${walletAddr}/stats`);
++      const token = localStorage.getItem('agenttip-token');
++      const headers: Record<string, string> = {};
++      if (token) headers['Authorization'] = `Bearer ${token}`;
++
++      const res = await fetch(`${API_URL}/creator/${walletAddr}/stats`, { headers });
+       if (res.ok) {
+         const data = await res.json();
+         setStats(data);
+@@ -122,7 +133,11 @@ export default function DashboardPage() {
+ 
+   const fetchIntelligence = useCallback(async (walletAddr: string) => {
+     try {
+-      const res = await fetch(`${API_URL}/creator/${walletAddr}/intelligence`);
++      const token = localStorage.getItem('agenttip-token');
++      const headers: Record<string, string> = {};
++      if (token) headers['Authorization'] = `Bearer ${token}`;
++
++      const res = await fetch(`${API_URL}/creator/${walletAddr}/intelligence`, { headers });
+       if (res.ok) {
+         const data = await res.json();
+         setIntelligence(data);
+@@ -161,12 +176,79 @@ export default function DashboardPage() {
+     return () => { s.disconnect(); };
+   }, [isOnboarded, wallet, fetchStats, fetchIntelligence]);
+ 
+-  const handleOnboard = () => {
++  const handleOnboard = async () => {
+     if (wallet.match(/^0x[a-fA-F0-9]{40}$/)) {
+-      localStorage.setItem('agenttip-wallet', wallet.toLowerCase());
+-      setIsOnboarded(true);
+-      fetchStats(wallet.toLowerCase());
+-      fetchIntelligence(wallet.toLowerCase());
++      try {
++        setLoading(true);
++        // Ensure ethereum provider exists
++        if (!window.ethereum) {
++          alert('Please install a Web3 wallet (e.g. MetaMask, Coinbase Wallet)');
++          setLoading(false);
++          return;
++        }
++
++        // Request connection
++        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
++        const userWallet = accounts[0];
++
++        // Ensure connected wallet matches input
++        if (userWallet.toLowerCase() !== wallet.toLowerCase()) {
++          alert('Please connect the wallet address you entered.');
++          setLoading(false);
++          return;
++        }
++
++        const ethers = (await import('ethers')).ethers;
++        const provider = new ethers.BrowserProvider(window.ethereum);
++        const signer = await provider.getSigner();
++
++        // 1. Get SIWE Nonce
++        const nonceRes = await fetch(`${API_URL}/auth/nonce`);
++        const nonce = await nonceRes.text();
++
++        const { SiweMessage } = await import('siwe');
++
++        // 2. Create SIWE message
++        const message = new SiweMessage({
++          domain: window.location.host,
++          address: userWallet,
++          statement: 'Sign in to AgentTip Dashboard to manage your earnings and ENS Will.',
++          uri: window.location.origin,
++          version: '1',
++          chainId: 8453, // Base mainnet (or testnet 84532)
++          nonce,
++        });
++
++        const preparedMessage = message.prepareMessage();
++        
++        // 3. Request Signature
++        const signature = await signer.signMessage(preparedMessage);
++
++        // 4. Verify & Get JWT Token
++        const verifyRes = await fetch(`${API_URL}/auth/verify`, {
++          method: 'POST',
++          headers: { 'Content-Type': 'application/json' },
++          body: JSON.stringify({ message: preparedMessage, signature })
++        });
++        
++        const verifyData = await verifyRes.json();
++
++        if (verifyData.token) {
++          localStorage.setItem('agenttip-wallet', wallet.toLowerCase());
++          localStorage.setItem('agenttip-token', verifyData.token);
++          
++          setIsOnboarded(true);
++          fetchStats(wallet.toLowerCase());
++          fetchIntelligence(wallet.toLowerCase());
++        } else {
++          alert('Failed to authenticate wallet');
++        }
++      } catch (err: any) {
++        console.error('Wallet auth failed:', err);
++        alert('Authentication failed. Please try again.');
++      } finally {
++        setLoading(false);
++      }
+     }
+   };
+ 
+@@ -177,6 +259,31 @@ export default function DashboardPage() {
+     setTimeout(() => setCopied(false), 2000);
+   };
+ 
++  const handleSaveEnsName = async (ensName: string) => {
++    try {
++      const token = localStorage.getItem('agenttip-token');
++      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
++      if (token) headers['Authorization'] = `Bearer ${token}`;
++
++      const res = await fetch(`${API_URL}/creator/${wallet}/profile`, {
++        method: 'PUT',
++        headers,
++        body: JSON.stringify({ ensName })
++      });
++      
++      const data = await res.json();
++      if (res.ok && data.success) {
++        alert('ENS Name saved successfully!');
++        fetchStats(wallet);
++      } else {
++        alert(data.error || 'Failed to save ENS name');
++      }
++    } catch (err) {
++      console.error(err);
++      alert('Failed to save ENS Name');
++    }
++  };
++
+   // Prepare chart data
+   const chartData = stats?.dailyEarnings
+     ? Object.values(
+@@ -396,6 +503,43 @@ export default function DashboardPage() {
+                 )}
+               </div>
+ 
++              {/* ENS DeFi Will Card */}
++              <div className="rounded-xl border border-gray-800 p-6 bg-gray-900">
++                <div className="flex items-center gap-3 mb-4">
++                  <span className="text-2xl">≡ƒô£</span>
++                  <div>
++                    <h3 className="font-semibold text-white">ENS DeFi Will</h3>
++                    <p className="text-sm text-gray-400">
++                      Link your ENS name to enable autonomous on-chain distribution of your earnings.
++                    </p>
++                  </div>
++                </div>
++
++                <div className="space-y-4">
++                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
++                    <input
++                      type="text"
++                      placeholder="e.g. vitalik.eth"
++                      className="bg-gray-800 text-white rounded-lg px-4 py-2 text-sm border border-gray-700 w-full flex-1 outline-none focus:border-purple-500"
++                      value={ensName}
++                      onChange={e => setEnsName(e.target.value)}
++                    />
++                    <button
++                      onClick={() => handleSaveEnsName(ensName)}
++                      disabled={!ensName.endsWith('.eth')}
++                      className="w-full sm:w-auto bg-purple-600 hover:bg-purple-700 text-white rounded-lg px-6 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
++                    >
++                      Save ENS
++                    </button>
++                  </div>
++                  {stats && (stats as any).ensName && (
++                     <div className="text-green-400 text-sm mt-2 flex items-center gap-2">
++                       <span>Γ£à</span> Current ENS Will: {(stats as any).ensName}
++                     </div>
++                  )}
++                </div>
++              </div>
++
+               {/* Embed code */}
+               <div className="glass-card p-6">
+                 <h2 className="text-lg font-semibold mb-4">Install Widget</h2>

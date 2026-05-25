@@ -15,7 +15,7 @@ const usedTxHashes = new Set<string>();
  */
 export function isValidAddress(address: string): boolean {
   try {
-    ethers.getAddress(address); // Checksums and validates
+    ethers.getAddress(address.toLowerCase()); // Lowercase string to bypass strict checksum during parse
     return true;
   } catch {
     return false;

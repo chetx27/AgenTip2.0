@@ -1,0 +1,45 @@
+﻿On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   backend/package-lock.json
+	modified:   backend/package.json
+	modified:   backend/prisma/schema.prisma
+	modified:   backend/src/index.ts
+	modified:   frontend/package-lock.json
+	modified:   frontend/package.json
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add/rm <file>..." as appropriate to mark resolution)
+	deleted by us:   frontend/src/app/dashboard/page.tsx
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   backend/package-lock.json
+	modified:   backend/package.json
+	modified:   backend/src/index.ts
+	modified:   backend/src/routes/creator.ts
+	modified:   backend/src/routes/notify.ts
+	modified:   backend/src/routes/tip.ts
+	modified:   backend/src/routes/verify.ts
+	modified:   frontend/package-lock.json
+	modified:   frontend/package.json
+	modified:   widget/src/wallet.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	backend/src/jobs/willExecutor.ts
+	backend/src/lib/ensWill.ts
+	backend/src/middleware/auth.ts
+	backend/src/routes/auth.ts
+	backend/src/routes/will.ts
+	backend/test/
+	backend/vitest.config.ts
+	contracts/
+	demo/ens_will_demo.py
+	status.txt
+	status3.txt
+

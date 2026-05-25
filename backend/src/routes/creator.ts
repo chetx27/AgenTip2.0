@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { isValidAddress } from '../lib/verify';
+import { getDocViewerUrl } from '../lib/fileverse';
 import { statsLimiter } from '../middleware/rateLimit';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -86,6 +88,106 @@ router.get('/:wallet/stats', statsLimiter, async (req: Request, res: Response): 
     });
   } catch (error) {
     console.error('[Creator] Error fetching stats:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /creator/:wallet/intelligence
+ * Returns the creator's Fileverse dDoc viewer URL and recent agent contexts
+ */
+router.get('/:wallet/intelligence', requireAuth, statsLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const wallet = req.params.wallet as string;
+
+    if (!isValidAddress(wallet)) {
+      res.status(400).json({ error: 'Invalid wallet address' });
+      return;
+    }
+
+    const normalizedWallet = wallet.toLowerCase();
+    
+    // Security: Only the owner can view their private intelligence feed
+    if (req.user?.wallet !== normalizedWallet) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    const creator = await prisma.creator.findUnique({
+      where: { wallet: normalizedWallet },
+    });
+
+    if (!creator?.fileversDocId) {
+      res.json({
+        hasDoc: false,
+        message: 'No agents have visited yet. Your intelligence feed will appear after the first agent payment.',
+      });
+      return;
+    }
+
+    const recentIntelligence = await prisma.transaction.findMany({
+      where: {
+        creatorWallet: normalizedWallet,
+        type: 'agent',
+        agentContext: { not: null },
+      },
+      select: {
+        id: true,
+        senderWallet: true,
+        agentContext: true,
+        agentQuery: true,
+        amount: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    res.json({
+      hasDoc: true,
+      docId: creator.fileversDocId,
+      ipfsHash: creator.fileversDocHash,
+      viewerUrl: creator.fileversDocHash ? getDocViewerUrl(creator.fileversDocHash) : null,
+      recentIntelligence,
+    });
+  } catch (error) {
+    console.error('[Creator] Error fetching intelligence:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * PUT /creator/:wallet/profile
+ * Updates creator profile settings like ENS name
+ */
+router.put('/:wallet/profile', requireAuth, statsLimiter, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const wallet = req.params.wallet as string;
+    const { ensName } = req.body;
+
+    if (!isValidAddress(wallet)) {
+      res.status(400).json({ error: 'Invalid wallet address' });
+      return;
+    }
+
+    const normalizedWallet = wallet.toLowerCase();
+
+    // Security check
+    if (req.user?.wallet !== normalizedWallet) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    const updated = await (prisma.creator as any).update({
+      where: { wallet: normalizedWallet },
+      data: { 
+        ensName: ensName ? String(ensName).toLowerCase() : null 
+      },
+    });
+
+    res.json({ success: true, creator: { ensName: (updated as any).ensName } });
+  } catch (error) {
+    console.error('[Creator] Error updating profile:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

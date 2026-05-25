@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("postgresql://neondb_owner:npg_dmh1yOjTk9ea@ep-small-hall-anw9ieja-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 }
 
 enum PaymentType {
@@ -20,12 +20,37 @@ enum TransactionStatus {
 }
 
 model Creator {
-  id        String   @id @default(cuid())
-  wallet    String   @unique
-  name      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id                   String    @id @default(cuid())
+  wallet               String    @unique
+  name                 String?
+  fileversDocId        String?   @map("fileverse_doc_id")
+  fileversDocHash      String?   @map("fileverse_doc_hash")
+  email                String?
+  summaryTime          String    @default("20:00") @map("summary_time")
+  notificationsEnabled Boolean   @default(false) @map("notifications_enabled")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  
+  // ENS DeFi Will fields
+  ensName          String?   @unique
+  lastClaimedAt    DateTime?
+  willStatus       String    @default("inactive")
+  willExecutedAt   DateTime?
+  totalEarnings    Float     @default(0)
 
   @@map("creators")
+}
+
+model WillExecution {
+  id             String   @id @default(cuid())
+  creatorWallet  String
+  ensName        String
+  totalAmount    Float
+  action         String
+  recipients     Json
+  message        String
+  txHashes       Json
+  status         String   @default("executed")
+  executedAt     DateTime @default(now())
 }
 
 model Transaction {
@@ -33,10 +58,13 @@ model Transaction {
   creatorWallet String            @map("creator_wallet")
   amount        Float
   currency      String            @default("USDC")
-  type          PaymentType
+  type          String
   txHash        String            @unique @map("tx_hash")
-  status        TransactionStatus @default(pending)
+  status        String            @default("pending")
   senderWallet  String?           @map("sender_wallet")
+  agentContext  String?           @map("agent_context")
+  agentQuery    String?           @map("agent_query")
+  writtenToDoc  Boolean           @default(false) @map("written_to_doc")
   createdAt     DateTime          @default(now()) @map("created_at")
 
   @@index([creatorWallet])

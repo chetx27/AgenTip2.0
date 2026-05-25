@@ -9,15 +9,23 @@ const router = Router();
 /**
  * POST /tip
  * Human tipping endpoint
- * Body: { wallet: string, amount: number, txHash: string }
+ * Body: { wallet: string, amount: number, txHash?: string, demo?: boolean }
  */
 router.post('/', paymentLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { wallet, amount, txHash } = req.body;
+    const { wallet, amount, txHash, demo } = req.body;
+    const allowFakeTips = process.env.TIP_ALLOW_FAKE_TIPS === 'true';
+    const isDemo = demo === true;
+    const resolvedTxHash = (txHash || `demo_${Date.now()}`).toLowerCase();
 
     // Validate required fields
-    if (!wallet || !amount || !txHash) {
+    if (!wallet || !amount || (!txHash && !isDemo)) {
       res.status(400).json({ error: 'Missing required fields: wallet, amount, txHash' });
+      return;
+    }
+
+    if (isDemo && !allowFakeTips) {
+      res.status(403).json({ error: 'Demo tips are disabled' });
       return;
     }
 
@@ -33,14 +41,45 @@ router.post('/', paymentLimiter, async (req: Request, res: Response): Promise<vo
       return;
     }
 
-    // Replay protection
-    if (await isTxHashUsed(txHash)) {
-      res.status(409).json({ error: 'Transaction already processed' });
+    let verification = { valid: false, amount: 0, from: '', to: '' };
+
+    if (isDemo) {
+      verification = {
+        valid: true,
+        amount,
+        from: (req.body.senderWallet || '0xdemo').toLowerCase(),
+        to: wallet,
+      };
+    } else {
+      // Replay protection
+      if (await isTxHashUsed(txHash)) {
+        res.status(409).json({ error: 'Transaction already processed' });
+        return;
+      }
+
+      // Mark as used immediately to prevent race conditions
+      markTxHashUsed(txHash);
+
+      // Verify the transaction on-chain before crediting the creator
+      verification = await verifyUSDCTransfer(txHash, wallet, amount);
+    }
+    
+    if (!verification.valid) {
+      // Record as failed transaction
+      await prisma.transaction.create({
+        data: {
+          creatorWallet: wallet.toLowerCase(),
+          amount,
+          currency: 'USDC',
+          type: 'human',
+          txHash: resolvedTxHash,
+          senderWallet: req.body.senderWallet?.toLowerCase() || null,
+          status: 'failed',
+        },
+      });
+      res.status(400).json({ error: 'Transaction verification failed on Base. Please contact support.' });
       return;
     }
-
-    // Mark as used immediately to prevent race conditions
-    markTxHashUsed(txHash);
 
     // Ensure creator exists
     await prisma.creator.upsert({
@@ -49,16 +88,16 @@ router.post('/', paymentLimiter, async (req: Request, res: Response): Promise<vo
       create: { wallet: wallet.toLowerCase() },
     });
 
-    // Record transaction (will verify on-chain asynchronously for demo)
+    // Record verified transaction
     const transaction = await prisma.transaction.create({
       data: {
         creatorWallet: wallet.toLowerCase(),
         amount,
         currency: 'USDC',
         type: 'human',
-        txHash: txHash.toLowerCase(),
-        senderWallet: req.body.senderWallet?.toLowerCase() || null,
-        status: 'confirmed', // In production, start as 'pending' and verify
+        txHash: resolvedTxHash,
+        senderWallet: verification.from.toLowerCase() || req.body.senderWallet?.toLowerCase() || null,
+        status: 'confirmed', 
       },
     });
 
@@ -81,7 +120,7 @@ router.post('/', paymentLimiter, async (req: Request, res: Response): Promise<vo
       id: transaction.id,
       amount,
       type: 'human',
-      txHash,
+      txHash: resolvedTxHash,
       createdAt: transaction.createdAt,
     });
 

@@ -8,6 +8,26 @@
 
 ---
 
+## 🧠 Creator Intelligence Network (Powered by Fileverse)
+
+AgentTip introduces the **Creator Intelligence Network** — the inverse of surveillance capitalism.
+
+Instead of a platform spying on users and selling insights back to creators (Google Analytics, Meta Pixel), AgentTip agents **voluntarily write their research context** directly into a private encrypted document owned by the creator.
+
+Every agent that pays to access your content leaves a note:
+- What task were they working on?
+- What specific question brought them to your content?
+- What did they find valuable?
+
+This intelligence feeds into a private Fileverse dDoc — end-to-end encrypted, stored on IPFS, readable only by you. Not by AgentTip. Not by any platform. Just you and the agents you served.
+
+**This is built on:**
+- [Fileverse dDocs SDK](https://github.com/fileverse/fileverse-ddoc) — encrypted collaborative documents
+- [Fileverse IPFS Storage](https://fileverse.io) — decentralized document hosting
+- x402 Protocol — the payment layer that funds the intelligence exchange
+
+---
+
 ## 🏗 Architecture
 
 ```
@@ -27,6 +47,7 @@
            │ Click Tip Button             │ HTTP GET → 402
            │ → Smart Wallet               │ → Parse x402 Headers
            │ → USDC Transfer              │ → Pay $0.001 USDC
+           │                              │ → Send Context Headers
            │                              │ → Retry with Proof
            │                              │
      ┌─────▼──────────────────────────────▼───────┐
@@ -36,16 +57,21 @@
      │  │  POST /tip (human payments)          │   │
      │  │  POST /verify-payment (agent x402)   │   │
      │  │  GET  /creator/:wallet/stats         │   │
-     │  └──────────────────────────────────────┘   │
-     └─────────────┬──────────────┬────────────────┘
-                   │              │
-          ┌────────▼──────┐  ┌───▼──────────────┐
-          │  PostgreSQL   │  │  Creator         │
-          │  (Prisma)     │  │  Dashboard       │
-          │               │  │  (Next.js)       │
-          └───────────────┘  │  Real-time via   │
-                             │  WebSocket       │
-                             └──────────────────┘
+     │  │  GET  /creator/:wallet/intelligence  │   │
+     │  └──────────────┬───────────────────────┘   │
+     └────────┬────────┼──────────┬────────────────┘
+              │        │          │
+     ┌────────▼──────┐ │  ┌──────▼─────────────┐
+     │  PostgreSQL   │ │  │  Creator           │
+     │  (Prisma)     │ │  │  Dashboard         │
+     │               │ │  │  (Next.js)         │
+     └───────────────┘ │  │  + Intelligence    │
+                       │  │    Feed UI         │
+              ┌────────▼──┴────────────────────┘
+              │  Fileverse dDocs (IPFS)  │
+              │  Encrypted Intelligence  │
+              │  Documents               │
+              └──────────────────────────┘
 ```
 
 ---
@@ -62,8 +88,8 @@ AgenTip/
 │       ├── index.ts          # Server entrypoint
 │       ├── routes/           # API routes
 │       │   ├── tip.ts        # POST /tip
-│       │   ├── verify.ts     # POST /verify-payment
-│       │   ├── creator.ts    # GET /creator/:wallet/stats
+│       │   ├── verify.ts     # POST /verify-payment (+ Fileverse intelligence)
+│       │   ├── creator.ts    # GET /creator/:wallet/stats + /intelligence
 │       │   └── transactions.ts
 │       ├── middleware/
 │       │   ├── x402.ts       # x402 agent detection + 402 responses
@@ -71,12 +97,13 @@ AgenTip/
 │       └── lib/
 │           ├── prisma.ts     # Prisma client
 │           ├── socket.ts     # Socket.io setup
-│           └── verify.ts     # Payment verification
+│           ├── verify.ts     # Payment verification
+│           └── fileverse.ts  # Fileverse Intelligence Network
 │
 ├── frontend/                 # Next.js + Tailwind CSS
 │   └── src/app/
 │       ├── page.tsx          # Landing page
-│       ├── dashboard/page.tsx # Creator dashboard
+│       ├── dashboard/page.tsx # Creator dashboard + Intelligence Feed
 │       ├── layout.tsx        # Root layout
 │       └── globals.css       # Global styles
 │
@@ -89,7 +116,7 @@ AgenTip/
 │
 ├── demo/
 │   ├── blog.html             # Demo blog page
-│   └── agent_demo.py         # Python AI agent demo
+│   └── agent_demo.py         # Python AI agent demo (with intelligence context)
 │
 ├── .env.example              # Environment template
 └── README.md
@@ -162,7 +189,12 @@ Open `demo/blog.html` in your browser to see the widget in action.
 ```bash
 cd demo
 pip install requests
+
+# Single agent flow
 python agent_demo.py
+
+# Multi-agent intelligence demo (3 agents with different contexts)
+python agent_demo.py --multi
 ```
 
 ---
@@ -175,6 +207,7 @@ python agent_demo.py
 | `/tip` | POST | Record human tip `{ wallet, amount, txHash }` |
 | `/verify-payment` | POST | Verify agent x402 payment `{ wallet, txHash }` |
 | `/creator/:wallet/stats` | GET | Creator earnings & analytics |
+| `/creator/:wallet/intelligence` | GET | Creator's Fileverse intelligence feed |
 | `/transactions` | GET | Recent transactions (filterable) |
 
 ---
@@ -207,6 +240,8 @@ Add one line to any HTML page:
 Agent                     Server                    Blockchain
   │                         │                          │
   │── GET /content ────────►│                          │
+  │   + X-Agent-Context     │                          │
+  │   + X-Agent-Query       │                          │
   │                         │                          │
   │◄── 402 + x402 headers ─│                          │
   │                         │                          │
@@ -215,7 +250,11 @@ Agent                     Server                    Blockchain
   │                         │                          │
   │── POST /verify-payment ►│                          │
   │   { txHash, wallet }    │── verify on-chain ──────►│
-  │                         │◄── confirmed ────────────│
+  │   + context headers     │◄── confirmed ────────────│
+  │                         │                          │
+  │                         │── write to Fileverse ──► IPFS
+  │                         │   (async, non-blocking)  │
+  │                         │                          │
   │◄── 200 OK ─────────────│                          │
   │                         │                          │
   │── GET /content ────────►│                          │
@@ -263,5 +302,6 @@ Serve `widget/dist/widget.js` from your backend or a CDN.
 - **Transaction replay protection** (txHash uniqueness)
 - **Shadow DOM isolation** (widget CSS doesn't leak)
 - **Helmet** security headers
+- **End-to-end encrypted** intelligence docs (Fileverse + IPFS)
 
 

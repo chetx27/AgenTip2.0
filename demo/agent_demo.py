@@ -11,6 +11,10 @@ protected by the x402 protocol:
 4. Re-requests with payment proof
 5. Receives and displays the content
 
+NEW: Agents now send intelligence context headers with every payment.
+The creator gets a private Fileverse dDoc showing what each agent was
+researching when it paid for their content.
+
 Usage:
     python agent_demo.py [--url URL] [--wallet WALLET]
 
@@ -50,7 +54,7 @@ def print_banner():
 {Colors.BOLD}{Colors.CYAN}
    ╔══════════════════════════════════════════════╗
    ║     🤖 AgentTip — AI Agent Demo Script      ║
-   ║     x402 Protocol Payment Flow               ║
+   ║     x402 Protocol + Intelligence Network     ║
    ╚══════════════════════════════════════════════╝
 {Colors.END}""")
 
@@ -71,13 +75,24 @@ def print_error(text: str):
     print(f"\n  {Colors.RED}❌ {text}{Colors.END}")
 
 
-def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
-    """Simulate the full x402 payment flow."""
+AGENT_WALLET = '0xAGENT_DEMO_WALLET_000000000000000000'
+
+
+def simulate_agent_flow(
+    api_url: str,
+    content_url: str,
+    creator_wallet: str,
+    agent_context: str = 'General AI research',
+    agent_query: str = 'Exploring available content',
+):
+    """Simulate the full x402 payment flow with intelligence context."""
     
     print_banner()
     print(f"  {Colors.DIM}API URL:    {api_url}{Colors.END}")
     print(f"  {Colors.DIM}Content:    {content_url}{Colors.END}")
     print(f"  {Colors.DIM}Wallet:     {creator_wallet}{Colors.END}")
+    print(f"  {Colors.DIM}Context:    {agent_context}{Colors.END}")
+    print(f"  {Colors.DIM}Query:      {agent_query}{Colors.END}")
     print(f"  {Colors.DIM}Timestamp:  {datetime.now().isoformat()}{Colors.END}")
     
     # ── Step 1: Request content as an AI agent ──
@@ -86,13 +101,16 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
     headers = {
         'User-Agent': 'AI-Agent/1.0 (AgentTip Demo; Python)',
         'X-Agent-Type': 'autonomous',
+        'X-Agent-Context': agent_context,
+        'X-Agent-Query': agent_query,
+        'X-Content-Title': content_url,
+        'X-Agent-Address': AGENT_WALLET,
         'Accept': 'application/json',
     }
     
     try:
         response = requests.get(content_url, headers=headers, timeout=10)
     except requests.ConnectionError:
-        # If the content URL doesn't work, try the API directly
         print(f"  {Colors.DIM}Content URL not reachable, demonstrating API flow directly...{Colors.END}")
         response = None
     
@@ -100,7 +118,6 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
         print(f"  {Colors.YELLOW}← HTTP 402 Payment Required{Colors.END}")
         print(f"\n  {Colors.BOLD}Payment Headers Received:{Colors.END}")
         
-        # Parse x402 payment details from response
         payment_data = response.json()
         payment_info = payment_data.get('payment', {})
         
@@ -108,7 +125,6 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
             print_header(key, str(val))
             
     else:
-        # Simulate 402 response for demo purposes
         print(f"  {Colors.DIM}(Simulating 402 response for demo){Colors.END}")
         print(f"  {Colors.YELLOW}← HTTP 402 Payment Required{Colors.END}")
         print(f"\n  {Colors.BOLD}Payment Headers:{Colors.END}")
@@ -118,7 +134,7 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
         print_header("X-Payment-Recipient", creator_wallet)
         print_header("X-Payment-Protocol", "x402")
     
-    time.sleep(1)  # Dramatic pause
+    time.sleep(1)
     
     # ── Step 2: Parse payment requirements ──
     print_step(2, "Parsing x402 payment requirements...")
@@ -136,7 +152,6 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
     # ── Step 3: Simulate micropayment ──
     print_step(3, "Sending micropayment via Coinbase Agent Wallet...")
     
-    # In production: use ethers/viem to send actual USDC transfer
     simulated_tx_hash = f"0xdemo{uuid.uuid4().hex[:56]}"
     
     print(f"  {Colors.DIM}Connecting to Base RPC...{Colors.END}")
@@ -149,8 +164,8 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
     print(f"\n  {Colors.GREEN}Transaction sent!{Colors.END}")
     print(f"  TxHash: {Colors.CYAN}{simulated_tx_hash[:20]}...{simulated_tx_hash[-8:]}{Colors.END}")
     
-    # ── Step 4: Submit payment proof to backend ──
-    print_step(4, "Submitting payment proof to AgentTip backend...")
+    # ── Step 4: Submit payment proof with intelligence context ──
+    print_step(4, "Submitting payment proof + intelligence context to AgentTip backend...")
     
     verify_payload = {
         'wallet': creator_wallet,
@@ -158,11 +173,19 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
         'amount': payment_amount,
     }
     
+    verify_headers = {
+        'Content-Type': 'application/json',
+        'X-Agent-Context': agent_context,
+        'X-Agent-Query': agent_query,
+        'X-Content-Title': content_url,
+        'X-Agent-Address': AGENT_WALLET,
+    }
+    
     try:
         verify_response = requests.post(
             f"{api_url}/verify-payment",
             json=verify_payload,
-            headers={'Content-Type': 'application/json'},
+            headers=verify_headers,
             timeout=10,
         )
         
@@ -172,6 +195,10 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
             print(f"  Access: {Colors.GREEN}{result.get('access', 'granted')}{Colors.END}")
             if result.get('transaction'):
                 print(f"  Transaction ID: {Colors.CYAN}{result['transaction'].get('id', 'N/A')}{Colors.END}")
+            print(f"\n  {Colors.BOLD}🧠 Intelligence Note Written:{Colors.END}")
+            print(f"  {Colors.DIM}  Task: {agent_context}{Colors.END}")
+            print(f"  {Colors.DIM}  Query: {agent_query}{Colors.END}")
+            print(f"  {Colors.DIM}  → Written to creator's private Fileverse dDoc{Colors.END}")
         else:
             print(f"  {Colors.YELLOW}Backend response: {verify_response.status_code}{Colors.END}")
             try:
@@ -181,6 +208,9 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
     except requests.ConnectionError:
         print(f"  {Colors.DIM}(Backend not running — simulating success){Colors.END}")
         print_success("Payment verified! (simulated)")
+        print(f"\n  {Colors.BOLD}🧠 Intelligence Note (would be written):{Colors.END}")
+        print(f"  {Colors.DIM}  Task: {agent_context}{Colors.END}")
+        print(f"  {Colors.DIM}  Query: {agent_query}{Colors.END}")
     
     time.sleep(0.5)
     
@@ -208,38 +238,123 @@ def simulate_agent_flow(api_url: str, content_url: str, creator_wallet: str):
    ║  Payment:  $0.001 USDC on Base              ║
    ║  Status:   Verified                          ║
    ║  Content:  Access Granted                    ║
+   ║  Intelligence: Written to Creator dDoc ✍️    ║
    ╚══════════════════════════════════════════════╝
 {Colors.END}""")
-    
-    print(f"  {Colors.DIM}This demonstrates how AI agents can autonomously pay for")
-    print(f"  content using the x402 protocol. In production, the agent would")
-    print(f"  use a real Coinbase Agent Wallet to send USDC on Base.{Colors.END}")
+
+
+def run_multi_agent_demo(api_url: str, creator_wallet: str):
+    """Demonstrate three agents with different research contexts."""
+
+    print(f"\n{Colors.BOLD}{Colors.HEADER}")
+    print("   ╔══════════════════════════════════════════════╗")
+    print("   ║  🧠 Multi-Agent Intelligence Demo           ║")
+    print("   ║  Three agents, one creator's private dDoc   ║")
+    print("   ╚══════════════════════════════════════════════╝")
+    print(f"{Colors.END}")
+
+    agents = [
+        {
+            'name': 'Climate Research Agent',
+            'context': 'Compiling a report on renewable energy storage for a green tech VC',
+            'query': 'lithium iron phosphate battery alternatives for grid storage',
+        },
+        {
+            'name': 'Medical Research Agent',
+            'context': 'Supporting a pharmaceutical team analyzing drug interaction research',
+            'query': 'peer-reviewed studies on SSRI cross-reactivity 2024-2025',
+        },
+        {
+            'name': 'Legal Research Agent',
+            'context': 'Drafting a legal brief on intellectual property in AI-generated content',
+            'query': 'case law on AI training data copyright fair use doctrine',
+        },
+    ]
+
+    for i, agent in enumerate(agents):
+        print(f"\n{Colors.BOLD}── Agent {i+1}: {agent['name']} ──{Colors.END}")
+
+        simulated_tx_hash = f"0xdemo{uuid.uuid4().hex[:56]}"
+
+        verify_payload = {
+            'wallet': creator_wallet,
+            'txHash': simulated_tx_hash,
+            'amount': 0.001,
+        }
+
+        verify_headers = {
+            'Content-Type': 'application/json',
+            'X-Agent-Context': agent['context'],
+            'X-Agent-Query': agent['query'],
+            'X-Content-Title': f'https://agentip-production.up.railway.app/content/article-{i+1}',
+            'X-Agent-Address': f'0xAgent{i+1}{"0" * 34}',
+        }
+
+        try:
+            resp = requests.post(
+                f"{api_url}/verify-payment",
+                json=verify_payload,
+                headers=verify_headers,
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                print_success(f"Paid & wrote intelligence note")
+                print(f"  {Colors.DIM}Task: {agent['context']}{Colors.END}")
+                print(f"  {Colors.DIM}Query: {agent['query']}{Colors.END}")
+            else:
+                print(f"  {Colors.YELLOW}Response: {resp.status_code}{Colors.END}")
+        except requests.ConnectionError:
+            print(f"  {Colors.DIM}(Backend not running — simulated){Colors.END}")
+            print_success(f"Would have paid & written intelligence note")
+            print(f"  {Colors.DIM}Task: {agent['context']}{Colors.END}")
+            print(f"  {Colors.DIM}Query: {agent['query']}{Colors.END}")
+
+        time.sleep(0.5)
+
+    print(f"\n{Colors.BOLD}{Colors.GREEN}[AgentTip]{Colors.END} All three agents paid and wrote to the creator's private intelligence doc.")
+    print(f"{Colors.BOLD}{Colors.GREEN}[AgentTip]{Colors.END} Creator can view their dDoc at: https://ddocs.new/ipfs/[CREATOR_DOC_HASH]")
     print()
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='AgentTip AI Agent Demo — x402 Payment Flow'
+        description='AgentTip AI Agent Demo — x402 Payment Flow + Intelligence Network'
     )
     parser.add_argument(
         '--api-url',
-        default='http://localhost:3001',
-        help='AgentTip backend API URL (default: http://localhost:3001)'
+        default='https://agentip-production.up.railway.app',
+        help='AgentTip backend API URL (default: https://agentip-production.up.railway.app)'
     )
     parser.add_argument(
         '--content-url',
-        default='http://localhost:3001/health',
-        help='Content URL to request (default: http://localhost:3001/health)'
+        default='https://agentip-production.up.railway.app/health',
+        help='Content URL to request (default: https://agentip-production.up.railway.app/health)'
     )
     parser.add_argument(
         '--wallet',
         default='0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78',
         help='Creator wallet address'
     )
+    parser.add_argument(
+        '--multi',
+        action='store_true',
+        help='Run multi-agent intelligence demo'
+    )
     
     args = parser.parse_args()
-    simulate_agent_flow(args.api_url, args.content_url, args.wallet)
+
+    if args.multi:
+        run_multi_agent_demo(args.api_url, args.wallet)
+    else:
+        simulate_agent_flow(
+            args.api_url,
+            args.content_url,
+            args.wallet,
+            agent_context='Analyzing web content for AI training data evaluation',
+            agent_query='Quality assessment of creator-published research content',
+        )
 
 
 if __name__ == '__main__':
     main()
+

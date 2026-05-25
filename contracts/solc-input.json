@@ -1,0 +1,17 @@
+{
+  "compiler": {
+    "version": "0.8.20"
+  },
+  "language": "Solidity",
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": ["abi", "evm.bytecode"]
+      }
+    }
+  }
+}
